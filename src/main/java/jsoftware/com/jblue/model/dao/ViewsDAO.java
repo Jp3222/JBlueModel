@@ -9,7 +9,9 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Arrays;
+import javax.swing.DefaultComboBoxModel;
 import jsoftware.com.jblue.model.dto.ProcessDTO;
+import jsoftware.com.jblue.model.dto.UserTypeDTO;
 import jsoftware.com.jutil.db.JDBConnection;
 import jsoftware.com.jutil.model.AbstractDAO;
 import jsoftware.com.jutil.swingw.modelos.JTableModel;
@@ -71,6 +73,32 @@ public class ViewsDAO extends AbstractDAO {
                     }
                     model.addRow(rowData); // Agrega la fila de forma segura
                     System.out.println(Arrays.toString(rowData));
+                }
+            }
+        }
+        return model;
+    }
+
+    public DefaultComboBoxModel<UserTypeDTO> getUserType(JDBConnection connection, String process_type_id, DefaultComboBoxModel<UserTypeDTO> model) throws SQLException {
+        model.removeAllElements();
+        String query = """
+                    SELECT 
+                        ID_TIPO_USUARIO, TIPO_USUARIO
+                    FROM 
+                        vwc_user_type
+                    WHERE 
+                        ID_TRAMITE = ?
+                   """;
+        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
+            ps.setString(1, process_type_id);
+
+            // 1. Ejecutamos la consulta correctamente con executeQuery()
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    UserTypeDTO o = new UserTypeDTO();
+                    o.put("id", rs.getString("ID_TIPO_USUARIO"));
+                    o.put("user_type", rs.getString("TIPO_USUARIO"));
+                    model.addElement(o);
                 }
             }
         }

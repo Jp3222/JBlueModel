@@ -101,7 +101,6 @@ public class UserDTO extends JDBMapObject {
 
     @Override
     public String toString() {
-        // Garantiza una salida segura en tus logs de Log4j2 sin riesgo de NullPointerException
-        return (values != null) ? values.toString() : "{}";
+        return getFirstName() + " " + getLastName1() + " " + getLastName2();
     }
 }

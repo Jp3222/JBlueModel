@@ -72,7 +72,7 @@ public class StreetDAO extends AbstractDAO implements ListComponentDAO<StreetDTO
      */
     public boolean insert(JDBConnection connection, StreetDTO dto) throws SQLException, DataAccesObjectException {
         boolean res = false;
-        String query = "INSERT INTO cat_street (street_name, colony_id, status, employee_last_update) VALUES (?, ?, ?, ?)";
+        String query = "INSERT INTO cat_street (street_name, colony_id, status, employee_last_update) VALUES (?, ?, 1, ?)";
         try (PreparedStatement ps = connection.getNewPreparedStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, dto.getStreetName());
             ps.setString(2, dto.getColonyId());

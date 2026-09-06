@@ -40,9 +40,7 @@ public class WaterIntakeUserDAO extends AbstractDAO {
      * Inserta un nuevo registro de vinculación entre un usuario y una toma de
      * agua.
      * <p>
-     * El DAO realiza el cast final a tipos numéricos (Integer, Double)
-     * requeridos por MySQL y enriquece el DTO con el ID autoincrementable y
-     * marcas de tiempo de éxito.
+     * TRAMITES:
      * </p>
      *
      * * @param connection Conexión activa.
@@ -59,8 +57,8 @@ public class WaterIntakeUserDAO extends AbstractDAO {
                        (user_id, address_id, water_intake_id, water_intake_type_id, user_type_id, 
                         office_id, user_name, description, observation, current_fiscal_year, 
                         last_month_paid, last_amount_paid, employee_register, last_employee_update, 
-                        original_process, last_process_type, status)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        original_process, last_process_id, status, is_consumer)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                        """;
 
         try (PreparedStatement ps = connection.getNewPreparedStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
@@ -88,10 +86,12 @@ public class WaterIntakeUserDAO extends AbstractDAO {
             ps.setInt(14, Integer.parseInt(dto.getLastEmployeeUpdate()));
 
             setNull(ps, 15, Func.isNotNullEmptyBlank(dto.getOriginalProcess()) ? Integer.valueOf(dto.getOriginalProcess()) : null);
-            setNull(ps, 16, Func.isNotNullEmptyBlank(dto.getLastProcessType()) ? Integer.valueOf(dto.getLastProcessType()) : null);
+            setNull(ps, 16, Func.isNotNullEmptyBlank(dto.getLastProcessId()) ? Integer.valueOf(dto.getLastProcessId()) : null);
 
             // 5. Estado Inicial
             ps.setString(17, dto.getStatus());
+            // 5. Estado Inicial
+            ps.setString(18, dto.getIsConsumer());
 
             int affectedRows = ps.executeUpdate();
             if (affectedRows == PreparedStatement.EXECUTE_FAILED || affectedRows != 1) {
@@ -194,7 +194,7 @@ public class WaterIntakeUserDAO extends AbstractDAO {
                            description = ?,
                            observation = ?,
                            last_employee_update = ?,
-                           last_process_type = ?,
+                           last_process_id = ?,
                            status = '1'
                        WHERE id = ? AND user_id = ?
                        """;
@@ -208,7 +208,7 @@ public class WaterIntakeUserDAO extends AbstractDAO {
             ps.setInt(6, Integer.parseInt(dto.getLastEmployeeUpdate()));
 
             // Proceso opcional
-            setNull(ps, 7, Func.isNotNullEmptyBlank(dto.getLastProcessType()) ? Integer.valueOf(dto.getLastProcessType()) : null);
+            setNull(ps, 7, Func.isNotNullEmptyBlank(dto.getLastProcessId()) ? Integer.valueOf(dto.getLastProcessId()) : null);
 
             // Cláusula WHERE (CORREGIDO: Mapeo de índices secuenciales 8 y 9 sin colisiones)
             ps.setInt(8, Integer.parseInt(dto.getId()));
@@ -232,7 +232,7 @@ public class WaterIntakeUserDAO extends AbstractDAO {
                            description = ?,
                            observation = ?,
                            last_employee_update = ?,
-                           last_process_type = ?,
+                           last_process_id = ?,
                            status = ?
                        WHERE id = ? AND user_id = ?
                        """;
@@ -242,7 +242,7 @@ public class WaterIntakeUserDAO extends AbstractDAO {
 
             // Flujo JBlue: Cast manual de auditorías y llaves
             ps.setInt(3, Integer.parseInt(dto.getLastEmployeeUpdate()));
-            setNull(ps, 4, Func.isNotNullEmptyBlank(dto.getLastProcessType()) ? Integer.valueOf(dto.getLastProcessType()) : null);
+            setNull(ps, 4, Func.isNotNullEmptyBlank(dto.getLastProcessId()) ? Integer.valueOf(dto.getLastProcessId()) : null);
 
             // Status e identificadores
             ps.setString(5, new_status);
@@ -314,9 +314,9 @@ public class WaterIntakeUserDAO extends AbstractDAO {
         setColumns.add("last_employee_update");
         parameters.add(Integer.valueOf(newData.getLastEmployeeUpdate()));
 
-        if (Func.isNotNullEmptyBlank(newData.getLastProcessType())) {
-            setColumns.add("last_process_type");
-            parameters.add(Integer.valueOf(newData.getLastProcessType()));
+        if (Func.isNotNullEmptyBlank(newData.getLastProcessId())) {
+            setColumns.add("last_process_id");
+            parameters.add(Integer.valueOf(newData.getLastProcessId()));
         }
 
         String setClause = String.join("=?, ", setColumns) + "=?";
@@ -398,5 +398,42 @@ public class WaterIntakeUserDAO extends AbstractDAO {
             setColumns.add(columnName);
             parameters.add(newValue);
         }
+    }
+
+    /**
+     * ACTUALIZA LA TOMA A STATUS "RECONECTADO" EN CASO DE HABER ESTADO CON
+     * STATUS "DESCONECTADO"
+     *
+     * @param connection
+     * @param dto
+     * @return
+     * @throws SQLException
+     */
+    public boolean addMov(JDBConnection connection, WaterIntakeUserDTO dto) throws SQLException {
+        boolean res = false;
+        // CORREGIDO: Se añadió la coma antes de status
+        String query = """
+                       UPDATE wki_user SET
+                           description = ?,
+                           observation = ?,
+                           last_employee_update = ?,
+                           last_process_id = ?,
+                           status = ?
+                       WHERE id = ? AND user_id = ?
+                       """;
+        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
+            setNull(ps, 1, dto.getDescription());
+            setNull(ps, 2, dto.getObservation());
+
+            // Flujo JBlue: Cast manual de auditorías y llaves
+            ps.setInt(3, Integer.parseInt(dto.getLastEmployeeUpdate()));
+            ps.setString(4, dto.getLastProcessId());
+            ps.setInt(6, Integer.parseInt(dto.getId()));
+            ps.setInt(7, Integer.parseInt(dto.getUserId()));
+            if (ps.executeUpdate() == 1) {
+                res = true;
+            }
+        }
+        return res;
     }
 }

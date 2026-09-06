@@ -2,15 +2,17 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package jsoftware.com.jblue.model.dto;
+package jsoftware.com.jblue.model.trash;
 
+import jsoftware.com.jblue.model.dto.AuditableModel;
+import jsoftware.com.jblue.model.dto.AuditableObjectMap;
 import jsoftware.com.jutil.db.model.JDBObject;
 
 /**
  *
  * @author juanp
  */
-public class PaymentDTO extends AuditableObjectMap implements AuditableModel, JDBObject {
+public class _PaymentDTO extends AuditableObjectMap implements AuditableModel, JDBObject {
 
     private static final long serialVersionUID = 1L;
 

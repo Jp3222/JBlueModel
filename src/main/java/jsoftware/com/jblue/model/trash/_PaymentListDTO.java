@@ -2,7 +2,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
-package jsoftware.com.jblue.model.dto;
+package jsoftware.com.jblue.model.trash;
 
 import jsoftware.com.jutil.db.JDBMapObject;
 
@@ -10,7 +10,7 @@ import jsoftware.com.jutil.db.JDBMapObject;
  *
  * @author juanp
  */
-public class PaymentListDTO extends JDBMapObject {
+public class _PaymentListDTO extends JDBMapObject {
 
     private static final long serialVersionUID = 1L;
 

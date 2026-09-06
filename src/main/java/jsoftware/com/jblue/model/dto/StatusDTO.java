@@ -27,8 +27,16 @@ public class StatusDTO extends JDBMapObject {
         return get("description").toString();
     }
 
+    public String getLabel() {
+        return get("label").toString();
+    }
+
     public String getAffectedGroup() {
         return get("affected_group").toString();
+    }
+
+    public String getAffectedTable() {
+        return get("affected_table").toString();
     }
 
     public String getDateUpdate() {
@@ -41,6 +49,11 @@ public class StatusDTO extends JDBMapObject {
 
     public String getDateFinalize() {
         return get("date_finalize").toString();
+    }
+
+    @Override
+    public String toString() {
+        return getLabel();
     }
 
 }

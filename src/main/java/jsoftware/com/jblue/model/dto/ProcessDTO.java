@@ -115,9 +115,17 @@ public class ProcessDTO extends JDBMapObject {
         return Func.nullSafeToString(get("date_end"));
     }
 
+    public String getOservation() {
+        return Func.nullSafeToString(get("observation"));
+    }
+
     @Override
     public String toString() {
         // Garantiza una salida segura en tus logs de Log4j2 sin riesgo de NullPointerException
         return (values != null) ? values.toString() : "{}";
+    }
+
+    public Object getObservation() {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 }

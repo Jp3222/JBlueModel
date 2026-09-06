@@ -86,12 +86,16 @@ public class WaterIntakeUserDTO extends JDBMapObject {
         return Func.nullSafeToString(get("original_process"));
     }
 
-    public String getLastProcessType() {
-        return Func.nullSafeToString(get("last_process_type"));
+    public String getLastProcessId() {
+        return Func.nullSafeToString(get("last_process_id"));
     }
 
     public String getStatus() {
         return Func.nullSafeToString(get("status"));
+    }
+
+    public String getIsConsumer() {
+        return Func.nullSafeToString(get("is_consumer"));
     }
 
     public String getDateUpdate() {
