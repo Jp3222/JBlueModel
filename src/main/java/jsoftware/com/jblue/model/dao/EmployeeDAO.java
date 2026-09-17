@@ -51,7 +51,8 @@ public class EmployeeDAO extends AbstractDAO {
      * exactamente 1.
      * @throws KeyNotGenerateException Si MySQL no genera la llave subyacente.
      */
-    public int insert(JDBConnection connection, EmployeeDTO dto) throws SQLException, CorruptInsertionException, KeyNotGenerateException {
+    public boolean insert(JDBConnection connection, EmployeeDTO dto) throws SQLException, CorruptInsertionException, KeyNotGenerateException {
+        boolean res = false;
         int employee_id = 0;
         String query = """
                        INSERT INTO emp_employee
@@ -84,28 +85,27 @@ public class EmployeeDAO extends AbstractDAO {
             setNull(ps, 11, dto.getStreet2());
             setNull(ps, 12, dto.getInsideNumber());
             setNull(ps, 13, dto.getOutsideNumber());
-            
+
             setNull(ps, 14, dto.getCommitteeId());
             setNull(ps, 15, dto.getLastEmployeeUpdate());
 
             // 5. Estado Inicial
-
             int affectedRows = ps.executeUpdate();
-            if (affectedRows == PreparedStatement.EXECUTE_FAILED || affectedRows != 1) {
+            res = affectedRows == PreparedStatement.EXECUTE_FAILED || affectedRows != 1;
+            if (!res) {
                 throw new CorruptInsertionException();
             }
-
             try (ResultSet rs = ps.getGeneratedKeys()) {
                 if (!rs.next()) {
                     throw new KeyNotGenerateException();
                 }
                 employee_id = rs.getInt(1);
-
                 // Flujo JBlue: Enriquecimiento post-operación del DTO
                 dto.put("id", String.valueOf(employee_id));
+                res = true;
             }
         }
-        return employee_id;
+        return res;
     }
 
     /**
