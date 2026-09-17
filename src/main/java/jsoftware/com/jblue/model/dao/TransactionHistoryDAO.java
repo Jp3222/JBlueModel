@@ -4,7 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import jsoftware.com.jblue.model.dto.TransactionHistoryDTO;
+import jsoftware.com.jblue.model.dto.TransactionHistoryDTO2;
 import jsoftware.com.jblue.model.exp.imp.CorruptInsertionException;
 import jsoftware.com.jblue.model.exp.imp.KeyNotGenerateException;
 import jsoftware.com.jutil.db.JDBConnection;
@@ -45,7 +45,7 @@ public class TransactionHistoryDAO extends AbstractDAO {
      * @return El ID generado por la base de datos, o -1 si falla.
      * @throws SQLException Si ocurre un error en la sentencia SQL.
      */
-    public int insert(JDBConnection conn, TransactionHistoryDTO dto) throws SQLException, CorruptInsertionException, KeyNotGenerateException {
+    public int insert(JDBConnection conn, TransactionHistoryDTO2 dto) throws SQLException, CorruptInsertionException, KeyNotGenerateException {
         String sql = "INSERT INTO hys_transaction_history "
                 + "(type_mov, observation, module_id, ip, affected_table, db_user, employee_id, status) "
                 + "VALUES (?, ?, ?, SUBSTRING_INDEX(USER(), '@', -1), ?, CURRENT_USER, ?, 34)";
@@ -88,7 +88,7 @@ public class TransactionHistoryDAO extends AbstractDAO {
      * @throws SQLException Si ocurre un error en la ejecución del UPDATE o
      * incompatibilidad de tipos.
      */
-    public boolean updateStatusOK(JDBConnection conn, TransactionHistoryDTO dto) throws SQLException {
+    public boolean updateStatusOK(JDBConnection conn, TransactionHistoryDTO2 dto) throws SQLException {
         // Corrección: Se elimina la coma errónea que estaba antes del WHERE ", WHERE id = ?"
         String sql = "UPDATE hys_transaction_history SET "
                 + "enty_id = ?, "

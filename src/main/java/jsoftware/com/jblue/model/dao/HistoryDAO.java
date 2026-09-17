@@ -25,6 +25,7 @@ import jsoftware.com.jutil.util.JFunc;
  *
  * @author juanp
  */
+@Deprecated
 public class HistoryDAO extends AbstractDAO implements TableComponentDAO<HistoryDTO> {
 
     protected static HistoryDAO instance;

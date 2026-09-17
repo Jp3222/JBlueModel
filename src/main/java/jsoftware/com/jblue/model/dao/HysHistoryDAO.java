@@ -30,6 +30,7 @@ import jsoftware.com.jutil.model.AbstractDAO;
  *
  * @author juanp
  */
+@Deprecated
 public class HysHistoryDAO extends AbstractDAO {
 
     private static final long serialVersionUID = 1L;
