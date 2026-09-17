@@ -322,9 +322,22 @@ public class ProcessDAO extends AbstractDAO {
         return list;
     }
 
+    /**
+     * Este metodo verifica la existencia de un tramite ignorando los status de
+     * eliminacion, invalidado y cancelacion.
+     * <br>
+     * En caso de existir un tramite con el id buscado se asignaran los valores
+     * encontrados del mismo
+     *
+     *
+     * @param connection
+     * @param process
+     * @return true solo si existe el tramite y false si no existe
+     * @throws SQLException
+     */
     public boolean exist(JDBConnection connection, ProcessDTO process) throws SQLException {
         boolean res = false;
-        String query = "SELECT * FROM pro_process WHERE id = ? AND status NOT IN(2, 3, 6) AND date_end IS NULL";
+        String query = "SELECT * FROM pro_process WHERE id = ?";
         try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
             ps.setString(1, process.getId());
             try (ResultSet rs = ps.executeQuery()) {
