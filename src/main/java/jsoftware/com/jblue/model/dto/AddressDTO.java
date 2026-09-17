@@ -1,13 +1,16 @@
 package jsoftware.com.jblue.model.dto;
 
+import java.util.Map;
 import jsoftware.com.jblue.util.Func;
 import jsoftware.com.jutil.db.JDBMapObject;
 
 /**
- * DTO correspondiente al catálogo y registro de direcciones físicas de usuarios (UsrAddress).
+ * DTO correspondiente al catálogo y registro de direcciones físicas de usuarios
+ * (UsrAddress).
  * <br><br>
- * <strong>Estándar JBlue:</strong> Regula el transporte seguro de strings de control,
- * el mapeo condicional de propiedad y la nulidad defensiva en las cadenas explicativas.
+ * <strong>Estándar JBlue:</strong> Regula el transporte seguro de strings de
+ * control, el mapeo condicional de propiedad y la nulidad defensiva en las
+ * cadenas explicativas.
  *
  * @author JUAN PABLO CAMPOS CASASANERO
  * @since 2026-06-19
@@ -19,6 +22,10 @@ public class AddressDTO extends JDBMapObject {
 
     public AddressDTO() {
         super(32);
+    }
+
+    public AddressDTO(Map<String, Object> map) {
+        super(map);
     }
 
     public String getUserId() {
