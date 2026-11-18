@@ -1,5 +1,6 @@
 package jsoftware.com.jblue.model.dao;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -77,7 +78,7 @@ public class WaterIntakeUserDAO extends AbstractDAO {
             setNull(ps, 9, dto.getObservation());
 
             // 3. Estado Financiero y de Recaudación (Casteo manual numérico seguro)
-            ps.setInt(10, Integer.parseInt(dto.getCurrentFiscalYear()));
+            ps.setInt(10, Integer.parseInt(dto.getFiscalYear()));
             ps.setInt(11, Integer.parseInt(dto.getLastMonthPaid()));
             ps.setDouble(12, Double.parseDouble(dto.getLastAmountPaid()));
 
@@ -115,7 +116,7 @@ public class WaterIntakeUserDAO extends AbstractDAO {
      * Recupera una vinculación específica por su ID empleando metadatos
      * dinámicos.
      *
-     * * @param connection Conexión activa.
+     * @param connection Conexión activa.
      * @param id Llave primaria del registro.
      * @return Un Optional conteniendo el WaterIntakeUserDTO mapeado, o vacío.
      * @throws SQLException Si ocurre un error en la consulta.
@@ -181,7 +182,13 @@ public class WaterIntakeUserDAO extends AbstractDAO {
     }
 
     /**
-     * Procesa el cambio de propietario de la toma de agua.
+     * MOVIMIENTO QUE ACTUALIZA EL ID DEL USUARIO, EL TIPO DE USUARIO, EL NOMBRE
+     * DE USUARIO
+     *
+     * @param connection Conexión activa.
+     * @param id Llave primaria del registro.
+     * @return Un Optional conteniendo el WaterIntakeUserDTO mapeado, o vacío.
+     * @throws SQLException Si ocurre un error en la consulta.
      */
     public boolean updateOwnerChange(JDBConnection connection, WaterIntakeUserDTO dto, String old_user_id) throws SQLException {
         boolean res = false;
@@ -213,6 +220,50 @@ public class WaterIntakeUserDAO extends AbstractDAO {
             // Cláusula WHERE (CORREGIDO: Mapeo de índices secuenciales 8 y 9 sin colisiones)
             ps.setInt(8, Integer.parseInt(dto.getId()));
             ps.setInt(9, Integer.parseInt(old_user_id));
+
+            if (ps.executeUpdate() == 1) {
+                res = true;
+            }
+        }
+        return res;
+    }
+
+    /**
+     * MOVIMIENTO QUE ACTUALIZA EL ID DE LA TOMA DE AGUA FISICA, PARA EL TITULAR
+     * Y LOS CONSUMIDORES
+     *
+     * @param connection Conexión activa.
+     * @param id Llave primaria del registro.
+     * @return Un Optional conteniendo el WaterIntakeUserDTO mapeado, o vacío.
+     * @throws SQLException Si ocurre un error en la consulta.
+     */
+    public boolean updateWaterIntake(JDBConnection connection, WaterIntakeUserDTO dto) throws SQLException {
+        boolean res = false;
+        // CORREGIDO: Se añadió la coma antes de status
+        String query = """
+                       UPDATE wki_user SET
+                           water_intake_id = ?,
+                           water_intake_type_id = ?,
+                           description = ?,
+                           observation = ?,
+                           last_employee_update = ?,
+                           last_process_id = ?,
+                           status = '1'
+                       WHERE water_intake_id = ? AND water_intake_type_id = ? AND status = 1 AND date_end IS NULL
+                       """;
+        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
+            // Flujo JBlue: Cast explícito a tipos numéricos requeridos por MySQL
+            ps.setInt(1, Integer.parseInt(dto.getWaterIntakeId()));
+            ps.setInt(2, Integer.parseInt(dto.getWaterIntakeTypeId()));
+            setNull(ps, 3, dto.getDescription());
+            setNull(ps, 4, dto.getObservation());
+            ps.setInt(5, Integer.parseInt(dto.getLastEmployeeUpdate()));
+            // Proceso opcional
+            setNull(ps, 6, dto.getLastProcessId());
+
+            // Cláusula WHERE (CORREGIDO: Mapeo de índices secuenciales 8 y 9 sin colisiones)
+            ps.setInt(7, Integer.parseInt(dto.getWaterIntakeId()));
+            ps.setInt(8, Integer.parseInt(dto.getWaterIntakeTypeId()));
 
             if (ps.executeUpdate() == 1) {
                 res = true;
@@ -292,9 +343,9 @@ public class WaterIntakeUserDAO extends AbstractDAO {
         }
 
         // Control selectivo del Historial de Pagos y Recaudación (Casteos de tipos MySQL)
-        if (!java.util.Objects.equals(oldData.getCurrentFiscalYear(), newData.getCurrentFiscalYear())) {
+        if (!java.util.Objects.equals(oldData.getFiscalYear(), newData.getFiscalYear())) {
             setColumns.add("current_fiscal_year");
-            parameters.add(Integer.valueOf(newData.getCurrentFiscalYear()));
+            parameters.add(Integer.valueOf(newData.getFiscalYear()));
         }
         if (!java.util.Objects.equals(oldData.getLastMonthPaid(), newData.getLastMonthPaid())) {
             setColumns.add("last_month_paid");
@@ -436,4 +487,70 @@ public class WaterIntakeUserDAO extends AbstractDAO {
         }
         return res;
     }
+
+    /**
+     * ACTUALIZA LA TOMA A STATUS "RECONECTADO" EN CASO DE HABER ESTADO CON
+     * STATUS "DESCONECTADO"
+     *
+     * @param connection
+     * @param dto
+     * @return
+     * @throws SQLException
+     */
+    public boolean updateLastPayment(JDBConnection connection, WaterIntakeUserDTO dto) throws SQLException {
+        boolean res = false;
+        // CORREGIDO: Se añadió la coma antes de status
+        String query = """
+                       UPDATE wki_user SET
+                           fiscal_year=?,
+                           last_month_paid=?,
+                           last_amount_paid=?,
+                           description = ?,
+                           last_employee_update = ?
+                       WHERE id = ? AND user_id = ?
+                       """;
+        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
+            ps.setString(1, dto.getFiscalYear());
+            ps.setBigDecimal(2, new BigDecimal(dto.getLastMonthPaid()));
+            ps.setString(3, dto.getLastAmountPaid());
+            ps.setString(4, dto.getDescription());
+            ps.setInt(5, Integer.parseInt(dto.getLastEmployeeUpdate()));
+            ps.setInt(6, Integer.parseInt(dto.getId()));
+            ps.setInt(7, Integer.parseInt(dto.getUserId()));
+            if (ps.executeUpdate() == 1) {
+                res = true;
+            }
+        }
+        return res;
+    }
+
+    public List<WaterIntakeUserDTO> search(JDBConnection connection, String userName) {
+        List<WaterIntakeUserDTO> listaResultados = new ArrayList<>();
+        String query = "SELECT id, user_name FROM wki_user WHERE REPLACE(REPLACE(user_name,'_', ''), ' ', '') LIKE replace(replace(?, '_', ''), ' ', '')";
+
+        try (PreparedStatement pstmt = connection.getNewPreparedStatement(query)) {
+            // Se agregan los comodines del LIKE directamente en el parámetro de Java
+            pstmt.setString(1, "%" + userName + "%");
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                ResultSetMetaData md = rs.getMetaData();
+                int columns = md.getColumnCount();
+
+                // Usamos while para capturar todos los registros que coincidan con el LIKE
+                while (rs.next()) {
+                    WaterIntakeUserDTO dto = new WaterIntakeUserDTO();
+
+                    dto.put("id", rs.getString("id"));
+                    dto.put("user_name", rs.getString("user_name"));
+
+                    listaResultados.add(dto);
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace(System.out);
+        }
+
+        return listaResultados;
+    }
+
 }

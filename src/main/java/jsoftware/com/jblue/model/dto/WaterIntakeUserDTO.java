@@ -62,8 +62,8 @@ public class WaterIntakeUserDTO extends JDBMapObject {
         return Func.nullSafeToString(get("observation"));
     }
 
-    public String getCurrentFiscalYear() {
-        return Func.nullSafeToString(get("current_fiscal_year"));
+    public String getFiscalYear() {
+        return Func.nullSafeToString(get("fiscal_year"));
     }
 
     public String getLastMonthPaid() {
@@ -112,7 +112,6 @@ public class WaterIntakeUserDTO extends JDBMapObject {
 
     @Override
     public String toString() {
-        // Asegura un vaciado seguro en tus logs de auditoría previniendo excepciones nulas
-        return (values != null) ? values.toString() : "{}";
+        return getUserName();
     }
 }

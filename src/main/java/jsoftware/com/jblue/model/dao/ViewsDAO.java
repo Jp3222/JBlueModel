@@ -9,9 +9,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Optional;
 import javax.swing.DefaultComboBoxModel;
 import jsoftware.com.jblue.model.dto.ProcessDTO;
 import jsoftware.com.jblue.model.dto.UserTypeDTO;
+import jsoftware.com.jblue.model.dto.vw.WaterIntakeUserPaymentDTO;
 import jsoftware.com.jutil.db.JDBConnection;
 import jsoftware.com.jutil.model.AbstractDAO;
 import jsoftware.com.jutil.swingw.modelos.JTableModel;
@@ -105,4 +107,44 @@ public class ViewsDAO extends AbstractDAO {
         return model;
     }
 
+    public Optional<WaterIntakeUserPaymentDTO> get(JDBConnection connection, int id_toma) throws SQLException {
+        String query = """
+                    SELECT * FROM vww_wki_pym WHERE ID_TOMA = ?;
+                   """;
+
+        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
+            ps.setInt(1, id_toma);
+            // 1. Ejecutamos la consulta correctamente con executeQuery()
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return Optional.empty();
+                }
+                WaterIntakeUserPaymentDTO dto = new WaterIntakeUserPaymentDTO();
+                dto.setId_toma(rs.getInt("ID_TOMA"));
+                dto.setId_usuario(rs.getInt("ID_USUARIO"));
+                dto.setNumero_toma(rs.getString("NUMERO_TOMA"));
+                dto.setNombre_usuario(rs.getString("NOMBRE_USUARIO"));
+                dto.setTipo_toma(rs.getString("TIPO_TOMA"));
+                dto.setTipo_usuario(rs.getString("TIPO_USUARIO"));
+                dto.setCuota(rs.getBigDecimal("CUOTA"));
+                dto.setUlt_año_pago(rs.getInt("ULT_AÑO_PAGADO"));
+                dto.setUlt_mes_pago(rs.getInt("ULT_MES_PAGADO"));
+                dto.setMeses_pagados(rs.getInt("MESES_PAGADOS"));
+                dto.setEne(rs.getBoolean("ENE"));
+                dto.setFeb(rs.getBoolean("FEB"));
+                dto.setMar(rs.getBoolean("MAR"));
+                dto.setAbr(rs.getBoolean("ABR"));
+                dto.setMay(rs.getBoolean("MAY"));
+                dto.setJun(rs.getBoolean("JUN"));
+                dto.setJul(rs.getBoolean("JUL"));
+                dto.setAgo(rs.getBoolean("AGO"));
+                dto.setSep(rs.getBoolean("SEP"));
+                dto.setOct(rs.getBoolean("OCT"));
+                dto.setNov(rs.getBoolean("NOV"));
+                dto.setDic(rs.getBoolean("DIC"));
+                dto.setDate_register(rs.getTimestamp("date_register") != null ? rs.getTimestamp("date_register").toLocalDateTime() : null);
+                return Optional.of(dto);
+            }
+        }
+    }
 }

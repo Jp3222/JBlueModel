@@ -4,6 +4,7 @@
  */
 package jsoftware.com.jblue.util;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import jsoftware.com.jutil.util.JFunc;
@@ -103,4 +104,13 @@ public class Func extends JFunc {
         // Si ninguna condición coincidió en el bucle, se envía el backup
         return object_default;
     }
+
+    public static String input(String o) {
+        return o.trim().replace(" ", "_").toUpperCase();
+    }
+
+    public static boolean isZero(String o) {
+        return new BigDecimal(o).compareTo(BigDecimal.ZERO) <= 0;
+    }
+
 }
