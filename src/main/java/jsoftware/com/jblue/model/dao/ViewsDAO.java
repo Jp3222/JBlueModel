@@ -142,6 +142,9 @@ public class ViewsDAO extends AbstractDAO {
                 dto.setOct(rs.getBoolean("OCT"));
                 dto.setNov(rs.getBoolean("NOV"));
                 dto.setDic(rs.getBoolean("DIC"));
+                dto.setStatus_pagos(rs.getInt("ESTATUS_PAGOS"));
+                dto.setStatus_toma(rs.getInt("ESTATUS_TOMA"));
+                dto.setStatus_usuario(rs.getInt("ESTATUS_USUARIO"));
                 dto.setDate_register(rs.getTimestamp("date_register") != null ? rs.getTimestamp("date_register").toLocalDateTime() : null);
                 return Optional.of(dto);
             }

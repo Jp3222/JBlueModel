@@ -35,6 +35,9 @@ public class WaterIntakeUserPaymentDTO {
     private boolean oct;
     private boolean nov;
     private boolean dic;
+    private int status_pagos;
+    private int status_toma;
+    private int status_usuario;
     private LocalDateTime date_register;
 
     public int getId_toma() {
@@ -217,6 +220,30 @@ public class WaterIntakeUserPaymentDTO {
         return date_register;
     }
 
+    public int getStatus_pagos() {
+        return status_pagos;
+    }
+
+    public void setStatus_pagos(int status_pagos) {
+        this.status_pagos = status_pagos;
+    }
+
+    public int getStatus_toma() {
+        return status_toma;
+    }
+
+    public void setStatus_toma(int status_toma) {
+        this.status_toma = status_toma;
+    }
+
+    public int getStatus_usuario() {
+        return status_usuario;
+    }
+
+    public void setStatus_usuario(int status_usuario) {
+        this.status_usuario = status_usuario;
+    }
+
     public void setDate_register(LocalDateTime date_register) {
         this.date_register = date_register;
     }
@@ -275,6 +302,9 @@ public class WaterIntakeUserPaymentDTO {
         sb.append(", oct=").append(oct);
         sb.append(", nov=").append(nov);
         sb.append(", dic=").append(dic);
+        sb.append(", status_pagos=").append(status_pagos);
+        sb.append(", status_toma=").append(status_toma);
+        sb.append(", status_usuario=").append(status_usuario);
         sb.append(", date_register=").append(date_register);
         sb.append('}');
         return sb.toString();
