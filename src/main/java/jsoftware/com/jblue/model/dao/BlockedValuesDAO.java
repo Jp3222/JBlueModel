@@ -144,7 +144,7 @@ public class BlockedValuesDAO extends AbstractDAO {
         String query = "SELECT * FROM usr_blocked_values WHERE lock_value = ? AND status = 1";
 
         try (Connection conn = connection.getConnection(); PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, usr.getId());
+            pstmt.setInt(1, usr.getId());
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
