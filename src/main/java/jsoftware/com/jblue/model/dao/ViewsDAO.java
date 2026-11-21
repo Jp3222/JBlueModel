@@ -51,7 +51,7 @@ public class ViewsDAO extends AbstractDAO {
                    """;
         JTableModel model;
         try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getProcessType());
+            ps.setInt(1, dto.getProcess_type());
 
             // 1. Ejecutamos la consulta correctamente con executeQuery()
             try (ResultSet rs = ps.executeQuery()) {

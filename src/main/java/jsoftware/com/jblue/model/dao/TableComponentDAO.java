@@ -15,10 +15,10 @@ import jsoftware.com.jutil.swingw.modelos.JTableModel;
  *
  * @author juanp
  */
-public interface TableComponentDAO<T extends DtoMapModel> extends Serializable {
+public interface TableComponentDAO<T> extends Serializable {
 
     List<T> getList(JDBConnection connection, JTableModel model) throws SQLException;
-    
+
     JTableModel buildModel(JDBConnection connection, JTableModel model) throws SQLException;
 
 }

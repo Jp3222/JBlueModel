@@ -91,7 +91,7 @@ public class HysHistoryDAO extends AbstractDAO {
     protected boolean save(JDBConnection connection, String current_user, EmployeeUserDTO employee, int affected_table, int type_mov, String description) throws SQLException {
         boolean rt = false;
         try (PreparedStatement ps = connection.getNewCallableStatement(INSERT)) {
-            ps.setString(1, employee.getId());
+            ps.setInt(1, employee.getId());
             ps.setString(2, current_user);
             ps.setInt(3, affected_table);
             ps.setInt(4, type_mov);

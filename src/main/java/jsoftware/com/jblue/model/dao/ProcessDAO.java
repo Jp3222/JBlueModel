@@ -2,320 +2,257 @@ package jsoftware.com.jblue.model.dao;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import jsoftware.com.jblue.model.dto.ProcessDTO;
-import jsoftware.com.jblue.model.exp.ProcessException;
-import jsoftware.com.jblue.model.exp.imp.CorruptInsertionException;
-import jsoftware.com.jblue.model.exp.imp.KeyNotGenerateException;
 import jsoftware.com.jutil.db.JDBConnection;
 import jsoftware.com.jutil.model.AbstractDAO;
 
 /**
- * Data Access Object (DAO) para el control evolutivo de trámites operativos.
- * <br>
- * Administra de forma secuencial las fases y estados del Workflow de JBlue.
+ * DAO para la gestión y auditoría de procesos en el sistema de cobros.
  *
- * * @author JUAN PABLO CAMPOS CASASANERO
- * @since 2026-05-30
- * @version 1.1
+ * @author Juan P. Campos C.
  */
 public class ProcessDAO extends AbstractDAO {
-
-    private static final long serialVersionUID = 1L;
 
     public ProcessDAO(boolean flag_dev_log, String name_module) {
         super(flag_dev_log, name_module);
     }
 
-    /**
-     * Fase [1]: Captura de Datos. Registra el inicio de un trámite en
-     * ventanilla.
-     */
-    public boolean startProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, KeyNotGenerateException, CorruptInsertionException {
-        boolean res = false;
-        String query = """
-                   INSERT INTO pro_process
-                   (sequence_process, process_type, employee_start, date_start, administration_start, current_db_user, status, last_employee_update) 
-                   VALUES
-                   (?, ?, ?, ?, ?, CURRENT_USER, 10, ?)
-                   """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            // Mapeo corregido de parámetros posicionales
-            ps.setString(1, dto.getSequenceProcess());
-            ps.setString(2, dto.getProcessType());
-            ps.setString(3, dto.getEmployeeStart());
-            ps.setString(4, dto.getDateStart());
-            ps.setString(5, dto.getAdministrationStart());
-            ps.setString(6, dto.getLastEmployeeUpdate());
-            int affectedRows = ps.executeUpdate();
-            res = affectedRows == 1;
-            if (!res) {
-                throw new CorruptInsertionException();
-            }
-            try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (!rs.next()) {
-                    throw new KeyNotGenerateException();
+    public boolean startProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
+                     INSERT INTO pro_process 
+                     (
+                        sequence, process_type, employee_start, date_start, administration_start_id, 
+                        current_db_user, status, committee_id, office_id, 
+                        last_employee_update
+                     )
+                     VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, CURRENT_USER, 10, ?, ?, ?)
+                 """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, dto.getSequence());
+            pstmt.setInt(2, dto.getProcess_type());
+            pstmt.setInt(3, dto.getEmployee_start());
+            pstmt.setInt(4, dto.getAdministration_start_id());
+            pstmt.setString(5, dto.getCurrent_db_user());
+            pstmt.setInt(6, dto.getCommittee_id());
+            pstmt.setInt(7, dto.getOffice_id());
+            pstmt.setInt(8, dto.getLast_employee_update());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        dto.setId(generatedKeys.getInt(1));
+                    }
                 }
-                int id = rs.getInt(1);
-
-                // Enriquecimiento del DTO tras el éxito de la inserción
-                dto.put("id", String.valueOf(id));
-                res = true;
+                success = true;
             }
         }
-        return res;
+        return success;
     }
 
-    /**
-     * Fase [2]: VALIDACION DE INFORMACION.
-     * <br> AQUI SE PUEDE REGISTRAR LA ADMINISTRACION QUE FINALIZA DEBIDO A QUE
-     * SE PUEDE PONER EN SITUACION CRITICA EL TRAMITE
-     */
-    public boolean validProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, ProcessException {
-        String query = """
+    public boolean validProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
                         UPDATE pro_process SET
                             employee_valid = ?, 
-                            date_valid = CURRENT_TIMESTAMP,
-                            administration_end = ?,
+                            date_valid = CURRENT_TIMESTAMP,  
                             current_db_user = CURRENT_USER, 
-                            status = ?, 
+                            status = 11, 
                             last_employee_update = ?
                         WHERE id = ?
-                       """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getEmployeeValid());
-            setNull(ps, 2, dto.getAdministrationEnd());
-            setNull(ps, 3, dto.getStatus());
-            ps.setString(4, dto.getLastEmployeeUpdate());
-            ps.setString(5, dto.getId());
-            //ESTA FUNCION DEBE ACTUALIZAR SOLO UN REGISTRO
-            boolean rt = ps.executeUpdate() == 1;
-            if (!rt) {
-                throw new ProcessException(1, "ERROR EN VALIDACIÓN: El trámite ID " + dto.getId() + " no existe o no pudo mutar.");
+                     """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, dto.getEmployee_valid());
+            pstmt.setInt(2, dto.getLast_employee_update());
+            pstmt.setInt(3, dto.getId());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        dto.setId(generatedKeys.getInt(1));
+                    }
+                }
+                success = true;
             }
-            return rt;
         }
+        return success;
     }
 
-    /**
-     * Fase [2]: VALIDACION DE INFORMACION.
-     */
-    public boolean movProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, ProcessException {
-        String query = """
+    public boolean invalidProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
+                        UPDATE pro_process SET
+                            employee_valid = NULL, 
+                            date_valid = NULL,  
+                            current_db_user = CURRENT_USER, 
+                            status = 5, 
+                            last_employee_update = ?,
+                            date_end = CURRENT_TIMESTAMP
+                        WHERE id = ?
+                     """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, dto.getLast_employee_update());
+            pstmt.setInt(2, dto.getId());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        dto.setId(generatedKeys.getInt(1));
+                    }
+                }
+                success = true;
+            }
+        }
+        return success;
+    }
+
+    public boolean movProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
                         UPDATE pro_process SET
                             employee_mov = ?, 
-                            date_mov = CURRENT_TIMESTAMP, 
+                            date_mov = CURRENT_TIMESTAMP,  
                             current_db_user = CURRENT_USER, 
                             last_employee_update = ?
                         WHERE id = ?
-                       """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getEmployeeMov());
-            ps.setString(2, dto.getLastEmployeeUpdate());
-            ps.setString(4, dto.getLastEmployeeUpdate());
-            //ESTA FUNCION DEBE ACTUALIZAR SOLO UN REGISTRO
-            boolean rt = ps.executeUpdate() == 1;
-            if (!rt) {
-                throw new ProcessException(1, "ERROR EN VALIDACIÓN: El trámite ID " + dto.getId() + " no existe o no pudo mutar.");
+                     """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, dto.getEmployee_mov());
+            pstmt.setInt(2, dto.getLast_employee_update());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        dto.setId(generatedKeys.getInt(1));
+                    }
+                }
+                success = true;
             }
-            return rt;
         }
+        return success;
     }
 
-    /**
-     * Fase [4]: Registro de Pago en Cajas.
-     */
-    public boolean payProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, ProcessException {
-        boolean res = false;
-        String query = """
+    public boolean paymentProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
                         UPDATE pro_process SET
                             employee_payment = ?, 
-                            date_payment = CURRENT_TIMESTAMP, 
-                            current_db_user = CURRENT_USER,
+                            date_payment = CURRENT_TIMESTAMP,
                             status = 12,
+                            current_db_user = CURRENT_USER, 
                             last_employee_update = ?
                         WHERE id = ?
-                       """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getEmployeePayment());
-            ps.setString(2, dto.getLastEmployeeUpdate());
-            ps.setString(3, dto.getId());
-            //ESTA FUNCION DEBE ACTUALIZAR SOLO UN REGISTRO
-            res = ps.executeUpdate() == 1;
-            if (!res) {
-                throw new ProcessException(1, "ERROR EN VALIDACIÓN: El trámite ID " + dto.getId() + " no existe o no pudo mutar.");
+                     """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, dto.getEmployee_payment());
+            pstmt.setInt(2, dto.getLast_employee_update());
+            pstmt.setInt(3, dto.getId());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                success = true;
             }
         }
-        return res;
+        return success;
     }
 
-    /**
-     * Fase [6]: Finalización e incorporación definitiva al Padrón Activo.
-     */
-    public boolean endProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, ProcessException {
-        boolean res = false;
-        String query = """
+    public boolean finalizeProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
                         UPDATE pro_process SET
                             employee_finalize = ?, 
-                            date_finalize = CURRENT_TIMESTAMP, 
+                            date_finalize = CURRENT_TIMESTAMP,
                             administration_end = ?
-                            current_db_user = CURRENT_USER,
                             status = 13,
+                            current_db_user = CURRENT_USER, 
                             last_employee_update = ?
                         WHERE id = ?
-                       """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getEmployeeFinalize());
-            ps.setString(2, dto.getAdministrationEnd());
-            ps.setString(3, dto.getLastEmployeeUpdate());
-            ps.setString(4, dto.getId());
-            //ESTA FUNCION DEBE ACTUALIZAR SOLO UN REGISTRO
-            res = ps.executeUpdate() == 1;
-            if (!res) {
-                throw new ProcessException(1, "ERROR EN VALIDACIÓN: El trámite ID " + dto.getId() + " no existe o no pudo mutar.");
+                     """;
+        try (PreparedStatement pstmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setInt(1, dto.getEmployee_valid());
+            pstmt.setInt(2, dto.getAdministration_end_id());
+            pstmt.setInt(3, dto.getLast_employee_update());
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                success = true;
             }
         }
-        return res;
+        return success;
     }
 
-    /**
-     * Fase [5]: Impresión de Comprobante / Título de Concesión.
-     */
-    public boolean printProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, ProcessException {
-        boolean res = false;
-        String query = """
+    public boolean cancelProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
                         UPDATE pro_process SET
-                            employee_print = ?, 
-                            date_print = CURRENT_TIMESTAMP, 
-                            current_db_user = CURRENT_USER,
-                            last_employee_update = ?
+                            administration_end = ?,
+                            status = 5,
+                            current_db_user = CURRENT_USER, 
+                            last_employee_update = ?,
+                            date_end = CURRENT_TIMESTAMP
                         WHERE id = ?
-                       """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getEmployeePrint());
-            ps.setString(2, dto.getLastEmployeeUpdate());
-            ps.setString(3, dto.getId());
-            //ESTA FUNCION DEBE ACTUALIZAR SOLO UN REGISTRO
-            res = ps.executeUpdate() == 1;
-            if (!res) {
-                throw new ProcessException(1, "ERROR EN VALIDACIÓN: El trámite ID " + dto.getId() + " no existe o no pudo mutar.");
+                     """;
+        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, dto.getAdministration_end_id());
+            ps.setInt(2, dto.getLast_employee_update());
+            ps.setInt(3, dto.getId());
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows > 0) {
+                success = true;
             }
         }
-        return res;
+        return success;
     }
 
-    /**
-     * Cancelación explícita del trámite por dictamen o desistimiento del
-     * ciudadano.
-     * <br>CUANDO CADUCA UN TRAMITE A ESTE SE LE AGREGA LA FECGA DE
-     * FINALIZACION(DATE_END) QUE ES LA FECHA EN QUE SE CANCELO, CADUCO, SE
-     * INHABILITO EL REGISTRO Y/O SE ELIMINO EL REGISTRO(STATUS 3)
-     */
-    public boolean cancelProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, ProcessException {
-        boolean res = false;
-        String query = """
+    public boolean caducateProcess(JDBConnection connection, ProcessDTO dto) throws SQLException {
+        boolean success = false;
+        String sql = """
                         UPDATE pro_process SET
-                            employee_valid = ?, 
-                            date_valid = CURRENT_TIMESTAMP,
-                            administration_end = ?, 
-                            date_end = CURRENT_TIMESTAMP, 
-                            current_db_user = CURRENT_USER,
-                            status = 5
-                            last_employee_update = ?
+                            administration_end = ?,
+                            status = 14,
+                            current_db_user = CURRENT_USER, 
+                            last_employee_update = ?,
+                            date_end = CURRENT_TIMESTAMP
                         WHERE id = ?
-                       """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getEmployeeValid());
-            ps.setString(1, dto.getAdministrationEnd());
-            ps.setString(2, dto.getLastEmployeeUpdate());
-            ps.setString(3, dto.getId());
-            //ESTA FUNCION DEBE ACTUALIZAR SOLO UN REGISTRO
-            res = ps.executeUpdate() == 1;
-            if (!res) {
-                throw new ProcessException(1, "ERROR EN VALIDACIÓN: El trámite ID " + dto.getId() + " no existe o no pudo mutar.");
+                     """;
+        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            ps.setInt(1, dto.getAdministration_end_id());
+            ps.setInt(2, dto.getLast_employee_update());
+            ps.setInt(3, dto.getId());
+            int affectedRows = ps.executeUpdate();
+            if (affectedRows > 0) {
+                success = true;
             }
         }
-        return res;
+        return success;
     }
 
     /**
-     * Cierre automático por caducidad (Expiración del plazo de 30 días).
+     * Obtiene la lista de procesos filtrando por estatus, oficina y comité.
+     *
+     * @param connection
+     * @param status
+     * @param officeId
+     * @param committeeId
+     * @return
+     * @throws java.sql.SQLException
      */
-    public boolean caducateProcess(JDBConnection connection, ProcessDTO dto) throws SQLException, ProcessException {
-        boolean res = false;
-        String query = """
-                        UPDATE pro_process SET
-                            administration_end = ?, 
-                            date_end = CURRENT_TIMESTAMP, 
-                            current_db_user = CURRENT_USER,
-                            status = 14
-                            last_employee_update = ?
-                        WHERE id = ?
-                       """;
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, dto.getEmployeePrint());
-            ps.setString(2, dto.getLastEmployeeUpdate());
-            ps.setString(3, dto.getId());
-            //ESTA FUNCION DEBE ACTUALIZAR SOLO UN REGISTRO
-            res = ps.executeUpdate() == 1;
-            if (!res) {
-                throw new ProcessException(1, "ERROR EN VALIDACIÓN: El trámite ID " + dto.getId() + " no existe o no pudo mutar.");
-            }
-        }
-        return res;
-    }
-
-    // --- MÉTODOS DE FILTRADO Y CONSULTAS ---
-    public List<ProcessDTO> getStartProcedures(JDBConnection connection) throws SQLException {
-        return getProcess(connection, 10);
-    }
-
-    public List<ProcessDTO> getValidProcedures(JDBConnection connection) throws SQLException {
-        return getProcess(connection, 11);
-    }
-
-    public List<ProcessDTO> getPaymentProcedures(JDBConnection connection) throws SQLException {
-        return getProcess(connection, 12);
-    }
-
-    public List<ProcessDTO> getEndProcedures(JDBConnection connection) throws SQLException {
-        return getProcess(connection, 13);
-    }
-
-    public List<ProcessDTO> getCaducateProcedures(JDBConnection connection) throws SQLException {
-        return getProcess(connection, 14);
-    }
-
-    public List<ProcessDTO> getCanceledProcedures(JDBConnection connection) throws SQLException {
-        return getProcess(connection, 5);
-    }
-
-    /**
-     * Recupera y mapea de manera dinámica la lista de trámites filtrados por su
-     * estatus actual.
-     */
-    public List<ProcessDTO> getProcess(JDBConnection connection, int status) throws SQLException {
-        List<ProcessDTO> list = new ArrayList<>(50);
-        String query = "SELECT * FROM pro_process WHERE status = ?";
-
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setInt(1, status);
-            try (ResultSet rs = ps.executeQuery()) {
-                ResultSetMetaData md = rs.getMetaData();
-                int size = md.getColumnCount();
-
+    public List<ProcessDTO> get(JDBConnection connection, int status, int officeId, int committeeId) throws SQLException {
+        List<ProcessDTO> list = new ArrayList<>();
+        String sql = "SELECT * FROM pro_process WHERE status = ? AND office_id = ? AND committee_id = ?";
+        try (PreparedStatement pstmt = connection.getNewPreparedStatement(sql)) {
+            pstmt.setInt(1, status);
+            pstmt.setInt(2, officeId);
+            pstmt.setInt(3, committeeId);
+            try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    // CORRECCIÓN: Se remueve el parámetro 'size' del constructor. 
-                    // El DTO administra su propio mapa interno de capacidad fija 40.
-                    ProcessDTO process = new ProcessDTO();
-                    for (int i = 1; i <= size; i++) {
-                        String label = md.getColumnLabel(i);
-                        process.put(label, rs.getString(label));
-                    }
-                    list.add(process);
+                    list.add(mapRow(rs));
                 }
             }
         }
@@ -323,39 +260,74 @@ public class ProcessDAO extends AbstractDAO {
     }
 
     /**
-     * Este metodo verifica la existencia de un tramite ignorando los status de
-     * eliminacion, invalidado y cancelacion.
-     * <br>
-     * En caso de existir un tramite con el id buscado se asignaran los valores
-     * encontrados del mismo
-     *
+     * Busca y retorna un proceso específico por su ID.
      *
      * @param connection
-     * @param process
-     * @return true solo si existe el tramite y false si no existe
-     * @throws SQLException
+     * @param id
+     * @return
      */
-    public boolean exist(JDBConnection connection, ProcessDTO process) throws SQLException {
-        boolean res = false;
-        String query = "SELECT * FROM pro_process WHERE id = ?";
-        try (PreparedStatement ps = connection.getNewPreparedStatement(query)) {
-            ps.setString(1, process.getId());
-            try (ResultSet rs = ps.executeQuery()) {
-                ResultSetMetaData md = rs.getMetaData();
-                int size = md.getColumnCount();
-                res = rs.next();
-                if (!res) {
-                    return res;
-                }
-                // CORRECCIÓN: Se remueve el parámetro 'size' del constructor. 
-                // El DTO administra su propio mapa interno de capacidad fija 40.
-                for (int i = 1; i <= size; i++) {
-                    String label = md.getColumnLabel(i);
-                    process.put(label, rs.getString(label));
-                }
+    public Optional<ProcessDTO> getProcess(JDBConnection connection, int id) throws SQLException {
+        String sql = "SELECT * FROM pro_process WHERE id = ?";
+        try (PreparedStatement pstmt = connection.getNewPreparedStatement(sql)) {
+            pstmt.setInt(1, id);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
 
+                    return Optional.of(mapRow(rs));
+                }
             }
         }
-        return res;
+        return Optional.empty();
     }
+
+    private ProcessDTO mapRow(ResultSet rs) throws SQLException {
+        ProcessDTO dto = new ProcessDTO();
+        dto.setId(rs.getInt("id"));
+        dto.setSequence(rs.getInt("sequence"));
+        dto.setProcess_type(rs.getInt("process_type"));
+
+        dto.setEmployee_start(rs.getInt("employee_start"));
+        dto.setDate_start(toLocalDateTime(rs.getTimestamp("date_start")));
+
+        dto.setEmployee_valid(rs.getInt("employee_valid"));
+        dto.setDate_valid(toLocalDateTime(rs.getTimestamp("date_valid")));
+
+        dto.setEmployee_mov(rs.getInt("employee_mov"));
+        dto.setDate_mov(toLocalDateTime(rs.getTimestamp("date_mov")));
+
+        dto.setEmployee_payment(rs.getInt("employee_payment"));
+        dto.setDate_payment(toLocalDateTime(rs.getTimestamp("date_payment")));
+
+        dto.setEmployee_finalize(rs.getInt("employee_finalize"));
+        dto.setDate_finalize(toLocalDateTime(rs.getTimestamp("date_finalize")));
+
+        dto.setEmployee_print(rs.getInt("employee_print"));
+        dto.setDate_print(toLocalDateTime(rs.getTimestamp("date_print")));
+
+        dto.setAdministration_start_id(rs.getInt("administration_start_id"));
+        dto.setAdministration_end_id(rs.getInt("administration_end_id"));
+        dto.setCurrent_db_user(rs.getString("current_db_user"));
+        dto.setStatus(rs.getInt("status"));
+        dto.setCommittee_id(rs.getInt("committee_id"));
+        dto.setOffice_id(rs.getInt("office_id"));
+        dto.setLast_employee_update(rs.getInt("last_employee_update"));
+
+        dto.setDate_update(toLocalDateTime(rs.getTimestamp("date_update")));
+        dto.setDate_register(toLocalDateTime(rs.getTimestamp("date_register")));
+        dto.setDate_end(toLocalDateTime(rs.getTimestamp("date_end")));
+        return dto;
+    }
+
+    private void setTimestampOrNull(PreparedStatement pstmt, int index, LocalDateTime value) throws SQLException {
+        if (value != null) {
+            pstmt.setTimestamp(index, Timestamp.valueOf(value));
+        } else {
+            pstmt.setNull(index, Types.TIMESTAMP);
+        }
+    }
+
+    private LocalDateTime toLocalDateTime(Timestamp timestamp) {
+        return timestamp != null ? timestamp.toLocalDateTime() : null;
+    }
+
 }

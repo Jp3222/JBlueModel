@@ -34,6 +34,7 @@ public class HistoryDAO extends AbstractDAO implements TableComponentDAO<History
         return new HistoryDAO(flag_dev_log, name_module);
     }
 
+    @Deprecated
     public static synchronized HistoryDAO getInstance() {
         if (JFunc.isNull(instance)) {
             instance = getNewInstance(true, HistoryDAO.class.getName());
@@ -102,7 +103,7 @@ public class HistoryDAO extends AbstractDAO implements TableComponentDAO<History
         boolean rt = false;
         String INSERT = "INSERT INTO hys_program_history(employee, db_user, affected_table, type_mov, description) VALUES(?,?,?,?,?)";
         try (PreparedStatement ps = connection.getNewPreparedStatement(INSERT)) {
-            ps.setString(1, employee.getId());
+            ps.setInt(1, employee.getId());
             ps.setString(2, current_user);
             ps.setInt(3, affected_table);
             ps.setInt(4, type_mov);
@@ -118,7 +119,7 @@ public class HistoryDAO extends AbstractDAO implements TableComponentDAO<History
         int rt = -1;
         String INSERT = "INSERT INTO hys_program_history(employee, db_user, affected_table, type_mov, description) VALUES(?,?,?,?,?)";
         try (PreparedStatement ps = connection.getNewPreparedStatement(INSERT, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, employee.getId());
+            ps.setInt(1, employee.getId());
             ps.setString(2, current_user);
             ps.setInt(3, affected_table);
             ps.setInt(4, type_mov);
